@@ -7,26 +7,64 @@
 - 返回执行结果
 
 ```javascript
-Function.prototype.myCall = function(context, ...args) {
-    context =  (context ?? window) || new Object(context)
+Function.prototype.myCall = function (context, ...args) {
+    context = (context ?? window) || new Object(context)
     const key = Symbol()
     context[key] = this
     const result = context[key](...args)
     delete context[key]
     return result
 }
-function myfunc1(){
+function myfunc1() {
     this.name = 'Lee';
-    this.myTxt = function(txt) {
-        console.log( 'i am',txt );
+    this.myTxt = function (txt) {
+        console.log('i am', txt);
     }
-} 
-function myfunc2(){
+}
+function myfunc2() {
     myfunc1.myCall(this);
 }
-var myfunc3 = new myfunc2();
-myfunc3.myTxt('Geing'); // i am Geing
-console.log (myfunc3.name);	// Lee
+var myfunc2Instance = new myfunc2();
+console.log(myfunc2Instance);
+myfunc2Instance.myTxt('Geing'); // i am Geing
+console.log(myfunc2Instance.name);	// Lee
 ```
 
 注：ES2020新特性,`Null`判断符 `??`
+
+#### **模拟apply**
+
+- 前部分与`call`一样
+- 第二个参数可以不传，但类型必须为数组或者类数组
+
+```javascript
+Function.prototype.myApply = function (context) {
+    context = (context ?? window) || new Object(context);
+    const key = Symbol();
+    const args = arguments[1];
+    context[key] = this;
+    let result;
+    if (args) {
+        result = context[key](...args);
+    } else {
+        result = context[key]();
+    }
+    return result;
+}
+function myfunc1() {
+    this.name = 'Lee';
+    this.myTxt = function (txt) {
+        console.log('i am', txt);
+    }
+}
+function myfunc2() {
+    myfunc1.myApply(this);
+}
+var myfunc2Instance = new myfunc2();
+console.log(myfunc2Instance);
+myfunc2Instance.myTxt('Geing'); // i am Geing
+console.log(myfunc2Instance.name);	// Lee
+```
+
+注：代码实现存在缺陷，当第二个参数为类数组时，未作判断
+
