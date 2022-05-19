@@ -68,3 +68,91 @@ console.log(myfunc2Instance.name);	// Lee
 
 注：代码实现存在缺陷，当第二个参数为类数组时，未作判断
 
+#### 沙盒模型
+
+##### 1.代理沙盒
+
+```javascript
+window = global
+function proxySanbox() {
+    const originalWindow = window;
+    this.fackWindow = {}
+    this.proxy = new Proxy(this.fackWindow, {
+        set(target, p, value) {
+            target[p] = value;
+            return true;
+        },
+        get(target, p) {
+            return target[p] || originalWindow[p];
+        }
+    })
+}
+const sanbox1 = new proxySanbox();
+const sanbox2 = new proxySanbox();
+window.a = 'a in window';
+console.log(window.a);//a in window
+((window) => {
+    window.a = 'a in sanbox1';
+    console.log(window.a);//a in sanbox1
+})(sanbox1.proxy);
+((window) => {
+    window.a = 'a in sanbox2';
+    console.log(window.a);//a in sanbox2
+})(sanbox2.proxy);
+console.log(window.a);//a in window
+```
+
+##### 2.快照沙盒
+
+```javascript
+window = global
+class snapshotSanbox {
+    constructor() {
+        this.snapshot = {}
+        this.modifyProps = {};
+    }
+    active() {
+        for (const prop in window) {
+            if (window.hasOwnProperty(prop)) {
+                this.snapshot[prop] = window[prop];
+            }
+        }
+        Object.keys(this.modifyProps).forEach((prop) => {
+            window[prop] = this.modifyProps[prop]
+        })
+    }
+    inActive() {
+        for (const prop in window) {
+            if (window.hasOwnProperty(prop)) {
+                if (window[prop] !== this.snapshot[prop]) {
+                    this.modifyProps[prop] = window[prop];
+                    window[prop] = this.snapshot[prop];
+                }
+            }
+        }
+    }
+}
+const sanbox1 = new snapshotSanbox();
+const sanbox2 = new snapshotSanbox();
+window.a = 'a in window';
+console.log(window.a); //a in window
+sanbox1.active()
+window.a = 'a in sanbox1';
+console.log(window.a);//a in sanbox1
+sanbox1.inActive()
+console.log(window.a);//a in window
+sanbox2.active()
+window.a = 'a in sanbox2';
+console.log(window.a);//a in sanbox2
+sanbox2.inActive()
+console.log(window.a);//a in window
+sanbox1.active()
+console.log(window.a);//a in sanbox1
+sanbox2.active()
+console.log(window.a);//a in sanbox2
+sanbox2.inActive()
+console.log(window.a);//a in sanbox1
+sanbox1.inActive()
+console.log(window.a);//a in window
+```
+
